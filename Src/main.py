@@ -1,7 +1,7 @@
 import cv2
-import kmeans
+import KNN
 
 
 if __name__ == '__main__':
-    kmeans.kNearestNeighbors()
+    KNN.kNearestNeighbors()
 

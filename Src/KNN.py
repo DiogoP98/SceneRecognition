@@ -6,7 +6,7 @@ import cv2
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, classification_report
+from sklearn.metrics import r2_score, classification_report, average_precision_score, precision_score, accuracy_score
 
 def tiny_images(crop = 16):
     list_of_classes = []
@@ -29,9 +29,10 @@ def tiny_images(crop = 16):
         for index in range(100):
             image = cv2.imread('../Data/training/' + current_class + '/' + str(index) + '.jpg', cv2.IMREAD_GRAYSCALE)
             width, height = image.shape
-            centrex = (width - crop) // 2
-            centrey = (height - crop) // 2
-            croppedimage = image[centrex:centrex + crop,centrey:centrey + crop]
+            centrex = width // 2
+            centrey = height // 2
+            halfcrop = crop // 2
+            croppedimage = image[centrex - halfcrop:centrex + halfcrop,centrey - halfcrop:centrey + halfcrop]
             X = np.append(X, croppedimage.flatten())
             y = np.append(y, hash_map[current_class])
     
@@ -39,16 +40,23 @@ def tiny_images(crop = 16):
     scaler = StandardScaler()
     X = scaler.fit_transform(X)
 
-    return X, y
+    return X, y, hash_map.keys()
             
             
 
 def kNearestNeighbors():
-    X, y = tiny_images()
-    X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size=0.33, random_state=42)
-
-    for n in range(1,1000,10):
+    X, y, classes = tiny_images()
+    
+    X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size=0.3, random_state=42)
+    best = 0
+    best_k = 0
+    for n in range(1,200,1):
         classifier = KNeighborsClassifier(n_neighbors=n, weights='distance')
         classifier.fit(X_train, y_train)
-        #print(r2_score(y_validation, classifier.predict(X_validation)))
-
+        y_prediction = classifier.predict(X_validation)
+        #print(classification_report(y_validation, classifier.predict(X_validation), target_names= classes))
+        if precision_score(y_validation, y_prediction, average= 'micro') * 100 > best:
+            best_k = n
+            best = precision_score(y_validation, y_prediction, average= 'micro') * 100
+        
+    print("Best presicion: " + str(best) + ", with :" + str(best_k))
