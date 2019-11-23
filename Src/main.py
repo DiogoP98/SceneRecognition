@@ -1,5 +1,7 @@
 import cv2
-import kmeans
+import KNN
 
-kmeans.tiny_images()
+
+if __name__ == '__main__':
+    KNN.kNearestNeighbors()
 
