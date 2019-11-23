@@ -48,7 +48,7 @@ def kNearestNeighbors():
     X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size=0.33, random_state=42)
 
     for n in range(1,1000,10):
-        classifier = KNeighborsClassifier(n_neighbors=n)
+        classifier = KNeighborsClassifier(n_neighbors=n, weights='distance')
         classifier.fit(X_train, y_train)
         #print(r2_score(y_validation, classifier.predict(X_validation)))
 
