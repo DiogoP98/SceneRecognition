@@ -4,6 +4,7 @@
 
 # Vagrant
 .vagrant/
+__MACOSX/
 
 # Mac/OSX
 .DS_Store
