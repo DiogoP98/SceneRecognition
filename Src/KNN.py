@@ -28,6 +28,8 @@ def tiny_images(crop = 16):
     for current_class in list_of_classes:
         for index in range(100):
             image = cv2.imread('../Data/training/' + current_class + '/' + str(index) + '.jpg', cv2.IMREAD_GRAYSCALE)
+            image = (image / 255).astype(float)
+
             width, height = image.shape
             centrex = width // 2
             centrey = height // 2
