@@ -8,48 +8,32 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, classification_report, average_precision_score, precision_score, accuracy_score
 
-def tiny_images(crop = 16):
-    list_of_classes = []
-    hash_map = {}
-    index = 0
-    N = 0
-    for _, dirs, files in os.walk("../Data/training/", topdown=False): #getting each class from data
-        for name in dirs:
-            list_of_classes.append(name)
-            hash_map[name] = index
-            index += 1
-            number_files = len(fnmatch.filter(os.listdir("../Data/training/" + name), '*.jpg'))
+import preprocess
 
-            N += number_files
+def tiny_images(X, crop = 16):
+    tiny_images_X = np.array([])
 
-    X = np.array([])
-    y = np.array([])
-
-    for current_class in list_of_classes:
-        for index in range(100):
-            image = cv2.imread('../Data/training/' + current_class + '/' + str(index) + '.jpg', cv2.IMREAD_GRAYSCALE)
-            image = (image / 255).astype(float)
-
-            width, height = image.shape
-            centrex = width // 2
-            centrey = height // 2
-            halfcrop = crop // 2
-            croppedimage = image[centrex - halfcrop:centrex + halfcrop,centrey - halfcrop:centrey + halfcrop]
-            X = np.append(X, croppedimage.flatten())
-            y = np.append(y, hash_map[current_class])
+    for image in X:
+        width, height = image.shape
+        centrex = width // 2
+        centrey = height // 2
+        halfcrop = crop // 2
+        croppedimage = image[centrex - halfcrop:centrex + halfcrop,centrey - halfcrop:centrey + halfcrop]
+        tiny_images_X = np.append(tiny_images_X, croppedimage.flatten())
     
-    X = np.reshape(X, (N, crop*crop))
+    tiny_images_X = np.reshape(tiny_images_X, (X.shape[0], crop*crop))
     scaler = StandardScaler()
-    X = scaler.fit_transform(X)
+    tiny_images_X = scaler.fit_transform(tiny_images_X)
 
-    return X, y, hash_map.keys()
+    return tiny_images_X
             
-            
-
 def kNearestNeighbors():
-    X, y, classes = tiny_images()
+    X, y = preprocess.build_data()
+
+    X = tiny_images(X)
     
     X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size=0.3, random_state=42)
+
     best = 0
     best_k = 0
     for n in range(1,200,1):
@@ -62,3 +46,6 @@ def kNearestNeighbors():
             best = precision_score(y_validation, y_prediction, average= 'micro') * 100
         
     print("Best presicion: " + str(best) + ", with :" + str(best_k))
+
+if __name__ == '__main__':
+    kNearestNeighbors()
