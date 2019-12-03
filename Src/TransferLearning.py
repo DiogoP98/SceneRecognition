@@ -5,7 +5,7 @@ import cv2
 from keras.preprocessing.image import load_img, img_to_array
 from keras.applications.inception_v3 import InceptionV3
 from keras.applications.inception_v3 import preprocess_input
-from keras.layers import Input
+from keras.layers import Input, Flatten
 from keras.models import Model
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
@@ -66,6 +66,7 @@ def getFeatures(X, model):
     for image in X:
         print("here")
         image_feature = model.predict(X)
+        print(image_feature.shape)
         feature_matrix.append(image_feature.flatten())
         print("Image " + str(index))
         index += 1
@@ -78,10 +79,21 @@ def getFeatures(X, model):
 if __name__ == '__main__':
     X, y = preprocessData()
     print("Finished preprocessing data")
-    model = InceptionV3(include_top=False, weights="imagenet", pooling='avg')
+    base_model = InceptionV3(include_top=False, weights="imagenet", input_shape=(299,299,3))
+    #freeze layers in model
+    for layer in base_model.layers:
+        layer.trainable = False
+    output = base_model.layers[-1].output
+    output = Flatten()(output)
+    model = Model(base_model.input, output)
     feature_matrix = getFeatures(X, model)
     RBF = SVC(kernel='rbf', random_state=0, gamma=.01, C=1)
     X_train, X_validation, y_train, y_validation = train_test_split(feature_matrix, y, test_size=0.3, random_state=42)
     RBF.fit(X_train, y_train)
     y_predicted = RBF.predict(X_validation)
     print(precision_score(y_validation, y_predicted, average= 'micro') * 100)
+    # x = base_model.output
+    # x = GlobalAveragePooling2D(name='avg_pool')(x)
+    # x = Dropout(0.4)(x)
+    # predictions = Dense(CLASSES, activation='softmax')(x)
+    # model = Model(inputs=base_model.input, outputs=predictions)
