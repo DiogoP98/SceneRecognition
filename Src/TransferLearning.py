@@ -4,6 +4,7 @@ import cv2
 
 from keras.preprocessing.image import load_img, img_to_array
 from keras.applications.inception_v3 import InceptionV3
+from keras.applications.inception_v3 import preprocess_input
 from keras.layers import Input
 from keras.models import Model
 from sklearn.svm import SVC
@@ -43,14 +44,14 @@ def preprocessData():
         for index in range(100):
             image = load_img('../Data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb',interpolation='nearest')
             image = img_to_array(image, dtype='float')
-            image = image / 255
+            image_resized = cv2.resize(image, (299, 299)) 
+            image_resized = preprocess_input(image_resized)
 
             # if width == max_width and height == max_height:
             #     X.append(image)
             #     y.append(hash_map[current_class])
             #     continue
             
-            image_resized = cv2.resize(image, (299, 299)) 
             X.append(image_resized)
             y.append(hash_map[current_class])
     
@@ -63,7 +64,6 @@ def getFeatures(X, model):
     feature_matrix = []
     index = 1
     for image in X:
-        print(image.shape)
         print("here")
         image_feature = model.predict(X)
         feature_matrix.append(image_feature.flatten())

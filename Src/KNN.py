@@ -13,7 +13,7 @@ from sklearn.model_selection import KFold
 import preprocess
 
 def tiny_images(X, size = 16):
-    tiny_images_X = np.array([])
+    tiny_images_X = []
     i = 0
     for image in X:
         width, height = image.shape
@@ -23,9 +23,9 @@ def tiny_images(X, size = 16):
         halfcrop = square_size // 2
         croppedimage = image[centrex - halfcrop:centrex + halfcrop,centrey - halfcrop:centrey + halfcrop]
         resized_image = resize(croppedimage, (16, 16), anti_aliasing=True)
-        tiny_images_X = np.append(tiny_images_X, resized_image.flatten())
+        tiny_images_X.append(resized_image.flatten())
     
-    tiny_images_X = np.reshape(tiny_images_X, (X.shape[0], size*size))
+    tiny_images_X = np.asarray(tiny_images_X)
     scaler = StandardScaler()
     tiny_images_X = scaler.fit_transform(tiny_images_X)
 
@@ -38,7 +38,7 @@ def kNearestNeighbors():
     
     kf = KFold(n_splits=10, shuffle=True) 
 
-    for n in range(1,200,1):
+    for n in range(1,101,1):
         averagePrecision = 0 
         for train_index, validation_index in kf.split(X):
             X_train, X_validation = X[train_index], X[validation_index]

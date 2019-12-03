@@ -73,28 +73,59 @@ def get_histograms(data, kmeans, patch_size, step) -> (np.ndarray):
 
 
 if __name__ == '__main__':
+    # X, y = preprocess.build_data()
+    # np.save("processed_data/X.npy", X)
+    # np.save("processed_data/Y.npy", X)
+
+    # kf = KFold(n_splits=5, shuffle=True)
+    # number_of_clusters = 800
+    # average_precision = 0
+    # best_precision = 0
+    # best_model = None
+    # for train_index, validation_index in kf.split(X):
+    #     X_train, X_validation = X[train_index], X[validation_index]
+    #     y_train, y_validation = y[train_index], y[validation_index]
+    #     patches = extract_patches(X_train, 8, 4)
+    #     print("Finished patch extraction")
+
+    #     kmeans = MiniBatchKMeans(n_clusters=number_of_clusters, random_state=0).fit(patches)
+    #     print("Finished K-means")
+
+    #     train_features = get_histograms(X_train, kmeans, 8, 4)
+    #     print("Finished feature vectors for training data")
+
+    #     validation_features = get_histograms(X_validation, kmeans, 8, 4)
+    #     print("Finished feature vectors for validation data")
+
+    #     classif = OneVsRestClassifier(SVC(kernel='linear'))
+    #     classif.fit(train_features, y_train)
+    #     print("Finished SVM")
+
+    #     y_predict = classif.predict(validation_features)
+    #     precision = precision_score(y_validation, y_predict, average= 'micro') * 100
+    #     average_precision += precision
+    #     if precision > best_precision:
+    #         best_model = classif
+    #         best_precision = precision
+
+    # print("Average precision: " + str(average_precision / 5))
+    # pickle.dump(best_model, open('SVM_best.pickle', 'wb'))
+
     X, y = preprocess.build_data()
     np.save("processed_data/X.npy", X)
     np.save("processed_data/Y.npy", X)
-
-    kf = KFold(n_splits=5, shuffle=True)
-    number_of_clusters = 800
-    average_precision = 0
-    best_precision = 0
-    best_model = None
-    for train_index, validation_index in kf.split(X):
-        X_train, X_validation = X[train_index], X[validation_index]
-        y_train, y_validation = y[train_index], y[validation_index]
-        patches = extract_patches(X_train, 8, 4)
+    X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size=0.3, random_state=42)
+    for k in range(100,1100,100):
+        patches = extract_patches(X_train, 16, 8)
         print("Finished patch extraction")
 
-        kmeans = MiniBatchKMeans(n_clusters=number_of_clusters, random_state=0).fit(patches)
+        kmeans = MiniBatchKMeans(n_clusters=k, random_state=0).fit(patches)
         print("Finished K-means")
 
-        train_features = get_histograms(X_train, kmeans, 8, 4)
+        train_features = get_histograms(X_train, kmeans, 16, 8)
         print("Finished feature vectors for training data")
 
-        validation_features = get_histograms(X_validation, kmeans, 8, 4)
+        validation_features = get_histograms(X_validation, kmeans, 16, 8)
         print("Finished feature vectors for validation data")
 
         classif = OneVsRestClassifier(SVC(kernel='linear'))
@@ -103,12 +134,7 @@ if __name__ == '__main__':
 
         y_predict = classif.predict(validation_features)
         precision = precision_score(y_validation, y_predict, average= 'micro') * 100
-        average_precision += precision
-        if precision > best_precision:
-            best_model = classif
-            best_precision = precision
+        print("With " + str(k) + " clusters: " + str(precision))
 
-    print("Average precision: " + str(average_precision / 5))
-    pickle.dump(best_model, open('SVM_best.pickle', 'wb'))
 
 
