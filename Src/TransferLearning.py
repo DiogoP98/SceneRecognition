@@ -86,6 +86,7 @@ if __name__ == '__main__':
     output = Flatten()(output)
     model = Model(base_model.input, output)
     feature_matrix = getFeatures(X, model)
+    np.save("feature_matrix.npy", feature_matrix)
     RBF = SVC(kernel='rbf', random_state=0, gamma=.01, C=1)
     X_train, X_validation, y_train, y_validation = train_test_split(feature_matrix, y, test_size=0.3, random_state=42)
     RBF.fit(X_train, y_train)
