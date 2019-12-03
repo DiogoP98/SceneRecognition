@@ -3,8 +3,7 @@ import os, fnmatch
 import cv2
 
 from keras.preprocessing.image import load_img, img_to_array
-from keras.applications.inception_v3 import InceptionV3
-from keras.applications.inception_v3 import preprocess_input
+from keras.applications.inception_v3 import InceptionV3, preprocess_input
 from keras.layers import Input, Flatten
 from keras.models import Model
 from sklearn.svm import SVC
@@ -44,7 +43,7 @@ def preprocessData():
         for index in range(100):
             image = load_img('../Data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb',interpolation='nearest')
             image = img_to_array(image, dtype='float')
-            image_resized = cv2.resize(image, (299, 299)) 
+            image_resized = cv2.resize(image, (75, 75)) 
             image_resized = preprocess_input(image_resized)
 
             # if width == max_width and height == max_height:
@@ -79,7 +78,7 @@ def getFeatures(X, model):
 if __name__ == '__main__':
     X, y = preprocessData()
     print("Finished preprocessing data")
-    base_model = InceptionV3(include_top=False, weights="imagenet", input_shape=(299,299,3))
+    base_model = InceptionV3(include_top=False, weights="imagenet", input_shape=(75,75,3))
     #freeze layers in model
     for layer in base_model.layers:
         layer.trainable = False
