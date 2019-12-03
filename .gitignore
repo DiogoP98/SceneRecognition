@@ -124,3 +124,8 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+#my own
+processed_data/
+*.npy
+*.pickle

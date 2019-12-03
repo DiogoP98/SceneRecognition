@@ -11,12 +11,7 @@ from sklearn.cluster import MiniBatchKMeans
 from sklearn.metrics import precision_score
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
-
-list_of_classes = []
-hash_map = {}
-index = 0
-N = 0
-number_of_clusters = 500
+from sklearn.model_selection import KFold
 
 def extract_patches(train_data, patch_size, step) -> (np.ndarray):
     '''
@@ -79,28 +74,41 @@ def get_histograms(data, kmeans, patch_size, step) -> (np.ndarray):
 
 if __name__ == '__main__':
     X, y = preprocess.build_data()
-    X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size=0.3, random_state=42)
-    np.save('X_train_BoVW.npy', X_train)
-    np.save('X_validation_BoVW.npy', X_validation)
-    np.save('y_train_BoVW.npy', y_train)
-    np.save('y_validation_BoVW.npy', y_validation)
-    patches = extract_patches(X_train, 8, 4)
-    print("Finished patch extraction")
+    np.save("processed_data/X.npy", X)
+    np.save("processed_data/Y.npy", X)
 
-    kmeans = MiniBatchKMeans(n_clusters=number_of_clusters, random_state=0).fit(patches)
-    print("Finished K-means")
-    pickle.dump(kmeans, open('kmeans.pickle', 'wb'))
-    train_features = get_histograms(X_train, kmeans, 8, 4)
-    print("Finished feature vectors for training data")
-    np.save('feature_vector_train_BoVW.npy', train_features)
-    validation_features = get_histograms(X_validation, kmeans, 8, 4)
-    print("Finished feature vectors for validation data")
-    np.save('feature_vector_validation_BoVW.npy', validation_features)
+    kf = KFold(n_splits=5, shuffle=True)
+    number_of_clusters = 800
+    average_precision = 0
+    best_precision = 0
+    best_model = None
+    for train_index, validation_index in kf.split(X):
+        X_train, X_validation = X[train_index], X[validation_index]
+        y_train, y_validation = y[train_index], y[validation_index]
+        patches = extract_patches(X_train, 8, 4)
+        print("Finished patch extraction")
 
-    classif = OneVsRestClassifier(SVC(kernel='linear'))
-    classif.fit(train_features, y_train)
-    print("Finished SVM")
-    pickle.dump(kmeans, open('OneVSAll.pickle', 'wb'))
+        kmeans = MiniBatchKMeans(n_clusters=number_of_clusters, random_state=0).fit(patches)
+        print("Finished K-means")
 
-    y_predict = classif.predict(validation_features)
-    print(precision_score(y_validation, y_predict, average= 'micro') * 100)
+        train_features = get_histograms(X_train, kmeans, 8, 4)
+        print("Finished feature vectors for training data")
+
+        validation_features = get_histograms(X_validation, kmeans, 8, 4)
+        print("Finished feature vectors for validation data")
+
+        classif = OneVsRestClassifier(SVC(kernel='linear'))
+        classif.fit(train_features, y_train)
+        print("Finished SVM")
+
+        y_predict = classif.predict(validation_features)
+        precision = precision_score(y_validation, y_predict, average= 'micro') * 100
+        average_precision += precision
+        if precision > best_precision:
+            best_model = classif
+            best_precision = precision
+
+    print("Average precision: " + str(average_precision / 5))
+    pickle.dump(best_model, open('SVM_best.pickle', 'wb'))
+
+
