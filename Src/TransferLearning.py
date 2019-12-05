@@ -73,15 +73,16 @@ def getFeatures(X, model):
 
 if __name__ == '__main__':
     X, y, max_width, max_height = preprocessData()
-    print("Finished preprocessing data")
-    model = ResNet50(include_top=False, weights="imagenet", input_shape=(max_width, max_height,3))
-    #freeze layers in model
-    for layer in model.layers:
-        layer.trainable = False
-    feature_matrix = getFeatures(X, model)
-    print("Finished Feature Extraction")
-    np.save("feature_matrix.npy", feature_matrix)
-    RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, gamma=.01, C=1))
+    # print("Finished preprocessing data")
+    # model = ResNet50(include_top=False, weights="imagenet", input_shape=(max_width, max_height,3))
+    # #freeze layers in model
+    # for layer in model.layers:
+    #     layer.trainable = False
+    # feature_matrix = getFeatures(X, model)
+    # print("Finished Feature Extraction")
+    # np.save("feature_matrix.npy", feature_matrix)
+    feature_matrix = np.load("feature_matrix.npy")
+    RBF = OneVsRestClassifier(SVC(kernel='linear', random_state=0, gamma=.01, C=1))
     X_train, X_validation, y_train, y_validation = train_test_split(feature_matrix, y, test_size=0.3, random_state=42)
     print("Finished data split")
     RBF.fit(X_train, y_train)
