@@ -11,6 +11,7 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import precision_score
+from sklearn.neural_network import MLPClassifier
 
 def preprocessData():
     list_of_classes = []
@@ -68,7 +69,7 @@ def getFeatures(X, model):
     
     feature_matrix = np.asarray(feature_matrix)
     scaler = StandardScaler()
-    X = scaler.fit_transform(feature_matrix)
+    feature_matrix = scaler.fit_transform(feature_matrix)
     return feature_matrix
 
 if __name__ == '__main__':
@@ -80,12 +81,14 @@ if __name__ == '__main__':
     feature_matrix = getFeatures(X, model)
     np.save("feature_matrix_inception.npy", feature_matrix)
 
-    RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
-    score = 'precision'
+    #RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
+    #score = 'precision'
     #clf = GridSearchCV(RBF, parameters, scoring='%s_micro' % score)
+    mlp = MLPClassifier(activation='logistic')
     X_train, X_validation, y_train, y_validation = train_test_split(feature_matrix, y, test_size=0.3, random_state=42)
-    RBF.fit(X_train, y_train)
-    pickle.dump(RBF, open('RBF.pickle', 'wb'))
+    #RBF.fit(X_train, y_train)
+    mlp.fit(X_train, y_train)
+    #pickle.dump(RBF, open('RBF.pickle', 'wb'))
 
     # print("Inception_V3:")
     # print("Best parameters set found on development set:")
@@ -98,7 +101,7 @@ if __name__ == '__main__':
     #     print("%0.3f (+/-%0.03f) for %r"
     #           % (mean, std * 2, params))
     # print()
-    y_predicted = RBF.predict(X_validation)
+    y_predicted = mlp.predict(X_validation)
     print(precision_score(y_validation, y_predicted, average= 'micro') * 100)
     # x = base_model.output
     # x = GlobalAveragePooling2D(name='avg_pool')(x)
