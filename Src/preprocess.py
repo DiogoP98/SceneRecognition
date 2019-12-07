@@ -20,7 +20,6 @@ def build_data():
 
     X = []
     y = []
-    indes = 0
     for current_class in list_of_classes:
         for index in range(100):
             image = cv2.imread('../Data/training/' + current_class + '/' + str(index) + '.jpg', cv2.IMREAD_GRAYSCALE)
@@ -32,4 +31,16 @@ def build_data():
     X = np.asarray(X)
     y = np.asarray(y)
 
-    return X, y
+    return X, y, hash_map
+
+def get_test_data():
+    test_data = []
+    for file in sorted(os.listdir("../data/testing/"), key=lambda x: int(x.split('.')[0])):
+        image = cv2.imread("../data/testing/" + file, cv2.IMREAD_GRAYSCALE)
+        image = (image / 255).astype(float)
+
+        test_data.append(np.array(image))
+    
+    test_data = np.asarray(test_data)
+
+    return test_data

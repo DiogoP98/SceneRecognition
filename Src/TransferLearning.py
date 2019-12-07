@@ -1,5 +1,5 @@
 import numpy as np
-import os, fnmatch
+import os, fnmatch, pickle
 import cv2
 
 from keras.preprocessing.image import load_img, img_to_array
@@ -9,7 +9,7 @@ from keras.models import Model
 from sklearn.svm import SVC
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import precision_score
 
 def preprocessData():
@@ -73,20 +73,31 @@ def getFeatures(X, model):
 
 if __name__ == '__main__':
     X, y, max_width, max_height = preprocessData()
-    # print("Finished preprocessing data")
-    # model = ResNet50(include_top=False, weights="imagenet", input_shape=(max_width, max_height,3))
-    # #freeze layers in model
-    # for layer in model.layers:
-    #     layer.trainable = False
-    # feature_matrix = getFeatures(X, model)
-    # print("Finished Feature Extraction")
-    # np.save("feature_matrix.npy", feature_matrix)
-    feature_matrix = np.load("feature_matrix.npy")
-    RBF = OneVsRestClassifier(SVC(kernel='linear', random_state=0, gamma=.01, C=1))
+    model = ResNet50(include_top=False, weights="imagenet", input_shape=(max_width, max_height,3))
+    #freeze layers in model
+    for layer in model.layers:
+        layer.trainable = False
+    feature_matrix = getFeatures(X, model)
+    np.save("feature_matrix_inception.npy", feature_matrix)
+
+    RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
+    score = 'precision'
+    #clf = GridSearchCV(RBF, parameters, scoring='%s_micro' % score)
     X_train, X_validation, y_train, y_validation = train_test_split(feature_matrix, y, test_size=0.3, random_state=42)
-    print("Finished data split")
     RBF.fit(X_train, y_train)
-    print("Finished Fitting")
+    pickle.dump(RBF, open('RBF.pickle', 'wb'))
+
+    # print("Inception_V3:")
+    # print("Best parameters set found on development set:")
+    # print()
+    # print(clf.best_params_)
+
+    # means = clf.cv_results_['mean_test_score']
+    # stds = clf.cv_results_['std_test_score']
+    # for mean, std, params in zip(means, stds, clf.cv_results_['params']):
+    #     print("%0.3f (+/-%0.03f) for %r"
+    #           % (mean, std * 2, params))
+    # print()
     y_predicted = RBF.predict(X_validation)
     print(precision_score(y_validation, y_predicted, average= 'micro') * 100)
     # x = base_model.output
