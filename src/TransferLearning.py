@@ -45,7 +45,7 @@ def preprocessData():
         for index in range(100):
             image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
             image = img_to_array(image, dtype='float')
-            image_resized = cv2.resize(image, (500, 500))
+            image_resized = cv2.resize(image, (700, 700))
             image_resized = np.expand_dims(image_resized, axis=0)
             image_resized = preprocess_input(image_resized)
 
@@ -75,19 +75,27 @@ def getFeatures(X, model):
 
 if __name__ == '__main__':
     X, y, max_width, max_height = preprocessData()
-    model = ResNet50(include_top=False, weights="imagenet", input_shape=(500, 500, 3))
+    model = ResNet50(include_top=False, weights="imagenet", input_shape=(700, 700, 3))
     #freeze layers in model
     for layer in model.layers:
         layer.trainable = False
     feature_matrix = getFeatures(X, model)
+    
     #np.save("feature_matrix_inception.npy", feature_matrix)
 
-    RBF = OneVsRestClassifier(SVC(kernel='linear', random_state=0, C=1))
+    RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
     #score = 'precision'
     #clf = GridSearchCV(RBF, parameters, scoring='%s_micro' % score)
     #mlp = MLPClassifier(activation='logistic')
     X_train, X_validation, y_train, y_validation = train_test_split(feature_matrix, y, test_size=0.3, random_state=42)
-    RBF.fit(X_train, y_train)
+    half_size = X_train.shape(1) // 2
+    first_batch_X = X_train[0:half_size]
+    first_batch_y = y_train[0:half_size]
+    second_batch_X = X_train[half_size:feature_matrix.shape(1)]
+    second_batch_y = y_train[half_size:feature_matrix.shape(1)]
+
+    RBF.fit(first_batch_X, first_batch_y)
+    RBF.fit(second_batch_X, second_batch_y)
     #mlp.fit(X_train, y_train)
     #pickle.dump(RBF, open('RBF.pickle', 'wb'))
 

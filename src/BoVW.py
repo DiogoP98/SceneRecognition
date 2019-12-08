@@ -115,7 +115,7 @@ if __name__ == '__main__':
     X, y = preprocess.build_data()
     np.save("processed_data/X.npy", X)
     np.save("processed_data/Y.npy", X)
-    X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size=0.2, random_state=42)
     patches = extract_patches(X_train, 16, 8)
     for k in range(100,1100,100):
         print("Finished patch extraction")
