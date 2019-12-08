@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import precision_score
 from sklearn.neural_network import MLPClassifier
+from sklearn.decomposition import PCA
 
 def preprocessData():
     list_of_classes = []
@@ -79,7 +80,9 @@ if __name__ == '__main__':
     for layer in model.layers:
         layer.trainable = False
     feature_matrix = getFeatures(X, model)
-    np.save("feature_matrix_inception.npy", feature_matrix)
+    pca = PCA()
+    feature_matrix = pca.fit_transform(feature_matrix)
+    #np.save("feature_matrix_inception.npy", feature_matrix)
 
     #RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
     #score = 'precision'
