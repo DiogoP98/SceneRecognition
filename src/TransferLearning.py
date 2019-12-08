@@ -22,30 +22,30 @@ def preprocessData():
     max_width = 0
     max_height = 0
 
-    for _, dirs, files in os.walk("../Data/training/", topdown=False): #getting each class from data
+    for _, dirs, files in os.walk("../data/training/", topdown=False): #getting each class from data
         for name in dirs:
             list_of_classes.append(name)
             hash_map[name] = index
             index += 1
-            number_files = len(fnmatch.filter(os.listdir("../Data/training/" + name), '*.jpg'))
+            number_files = len(fnmatch.filter(os.listdir("../data/training/" + name), '*.jpg'))
 
             N += number_files
 
     X = []
     y = []
-    for current_class in list_of_classes:
-        for index in range(100):
-            image = load_img('../Data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
-            image = img_to_array(image, dtype='float')
-            width, height, _ = image.shape
-            max_width = max(width, max_width)
-            max_height = max(height, max_height)
+    # for current_class in list_of_classes:
+    #     for index in range(100):
+    #         image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
+    #         image = img_to_array(image, dtype='float')
+    #         width, height, _ = image.shape
+    #         max_width = max(width, max_width)
+    #         max_height = max(height, max_height)
 
     for current_class in list_of_classes:
         for index in range(100):
-            image = load_img('../Data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
+            image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
             image = img_to_array(image, dtype='float')
-            image_resized = cv2.resize(image, (max_width, max_height))
+            image_resized = cv2.resize(image, (500, 500))
             image_resized = np.expand_dims(image_resized, axis=0)
             image_resized = preprocess_input(image_resized)
 
@@ -75,22 +75,20 @@ def getFeatures(X, model):
 
 if __name__ == '__main__':
     X, y, max_width, max_height = preprocessData()
-    model = ResNet50(include_top=False, weights="imagenet", input_shape=(max_width, max_height,3))
+    model = ResNet50(include_top=False, weights="imagenet", input_shape=(500, 500, 3))
     #freeze layers in model
     for layer in model.layers:
         layer.trainable = False
     feature_matrix = getFeatures(X, model)
-    pca = PCA()
-    feature_matrix = pca.fit_transform(feature_matrix)
     #np.save("feature_matrix_inception.npy", feature_matrix)
 
-    #RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
+    RBF = OneVsRestClassifier(SVC(kernel='linear', random_state=0, C=1))
     #score = 'precision'
     #clf = GridSearchCV(RBF, parameters, scoring='%s_micro' % score)
-    mlp = MLPClassifier(activation='logistic')
+    #mlp = MLPClassifier(activation='logistic')
     X_train, X_validation, y_train, y_validation = train_test_split(feature_matrix, y, test_size=0.3, random_state=42)
-    #RBF.fit(X_train, y_train)
-    mlp.fit(X_train, y_train)
+    RBF.fit(X_train, y_train)
+    #mlp.fit(X_train, y_train)
     #pickle.dump(RBF, open('RBF.pickle', 'wb'))
 
     # print("Inception_V3:")
@@ -104,7 +102,7 @@ if __name__ == '__main__':
     #     print("%0.3f (+/-%0.03f) for %r"
     #           % (mean, std * 2, params))
     # print()
-    y_predicted = mlp.predict(X_validation)
+    y_predicted = RBF.predict(X_validation)
     print(precision_score(y_validation, y_predicted, average= 'micro') * 100)
     # x = base_model.output
     # x = GlobalAveragePooling2D(name='avg_pool')(x)
