@@ -75,13 +75,15 @@ def getFeatures(X, model):
 
 if __name__ == '__main__':
     X, y, max_width, max_height = preprocessData()
-    model = ResNet50(include_top=False, weights="imagenet", input_shape=(max_width, max_height, 3))
-    #freeze layers in model
-    for layer in model.layers:
-        layer.trainable = False
-    feature_matrix = getFeatures(X, model)
+    # model = ResNet50(include_top=False, weights="imagenet", input_shape=(max_width, max_height, 3))
+    # #freeze layers in model
+    # for layer in model.layers:
+    #     layer.trainable = False
+    # feature_matrix = getFeatures(X, model)
     
-    #np.save("feature_matrix_inception.npy", feature_matrix)
+    # np.save("feature_matrix_transfer.npy", feature_matrix)
+
+    feature_matrix = np.load("feature_matrix_transfer.npy")
 
     RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
     #score = 'precision'
@@ -92,7 +94,7 @@ if __name__ == '__main__':
     batches = []
     batches_y = []
     previous_batch = 0
-    for batch in range (0, X_train.shape[0], 50):
+    for batch in range (50, X_train.shape[0], 50):
         batches.append(X_train[previous_batch:batch])
         batches_y.append(y_train[previous_batch:batch])
         previous_batch = batch
@@ -100,7 +102,10 @@ if __name__ == '__main__':
     batches = np.asarray(batches)
     batches_y = np.asarray(batches_y)
 
-    for batch, batch_y in (batches, batch_y):
+    print(batches.shape)
+    print(batches_y.shape)
+    
+    for batch, batch_y in zip(batches, batches_y):
         RBF.fit(batch, batch_y)
     #mlp.fit(X_train, y_train)
     #pickle.dump(RBF, open('RBF.pickle', 'wb'))
