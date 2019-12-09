@@ -89,22 +89,19 @@ if __name__ == '__main__':
     #mlp = MLPClassifier(activation='logistic')
     X_train, X_validation, y_train, y_validation = train_test_split(feature_matrix, y, test_size=0.3, random_state=42)
     #print(X_train.shape, X_train.shape(0))
-    half_size = X_train.shape[0] // 2
-    quarter_size = half_size // 2
-    first_batch_X = X_train[0:quarter_size]
-    first_batch_y = y_train[0:quarter_size]
-    second_batch_X = X_train[quarter_size:half_size]
-    second_batch_y = y_train[quarter_size:half_size]
-    third_batch_X = X_train[half_size:half_size + quarter_size]
-    third_batch_y = y_train[half_size:half_size + quarter_size]
-    forth_batch_X = X_train[half_size + quarter_size:X_train.shape[0]]
-    forth_batch_y = y_train[half_size + quarter_size:X_train.shape[0]]
+    batches = []
+    batches_y = []
+    previous_batch = 0
+    for batch in range (0, X_train.shape[0], 50):
+        batches.append(X_train[previous_batch:batch])
+        batches_y.append(y_train[previous_batch:batch])
+        previous_batch = batch
+    
+    batches = np.asarray(batches)
+    batches_y = np.asarray(batches_y)
 
-
-    RBF.fit(first_batch_X, first_batch_y)
-    RBF.fit(second_batch_X, second_batch_y)
-    RBF.fit(third_batch_X, third_batch_y)
-    RBF.fit(forth_batch_X, forth_batch_y)
+    for batch, batch_y in (batches, batch_y):
+        RBF.fit(batch, batch_y)
     #mlp.fit(X_train, y_train)
     #pickle.dump(RBF, open('RBF.pickle', 'wb'))
 
