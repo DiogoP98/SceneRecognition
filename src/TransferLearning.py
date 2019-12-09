@@ -33,19 +33,19 @@ def preprocessData():
 
     X = []
     y = []
-    # for current_class in list_of_classes:
-    #     for index in range(100):
-    #         image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
-    #         image = img_to_array(image, dtype='float')
-    #         width, height, _ = image.shape
-    #         max_width = max(width, max_width)
-    #         max_height = max(height, max_height)
+    for current_class in list_of_classes:
+        for index in range(100):
+            image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
+            image = img_to_array(image, dtype='float')
+            width, height, _ = image.shape
+            max_width = max(width, max_width)
+            max_height = max(height, max_height)
 
     for current_class in list_of_classes:
         for index in range(100):
             image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
             image = img_to_array(image, dtype='float')
-            image_resized = cv2.resize(image, (700, 700))
+            image_resized = cv2.resize(image, (max_width, max_height))
             image_resized = np.expand_dims(image_resized, axis=0)
             image_resized = preprocess_input(image_resized)
 
@@ -75,7 +75,7 @@ def getFeatures(X, model):
 
 if __name__ == '__main__':
     X, y, max_width, max_height = preprocessData()
-    model = ResNet50(include_top=False, weights="imagenet", input_shape=(700, 700, 3))
+    model = ResNet50(include_top=False, weights="imagenet", input_shape=(max_width, max_height, 3))
     #freeze layers in model
     for layer in model.layers:
         layer.trainable = False
@@ -88,14 +88,23 @@ if __name__ == '__main__':
     #clf = GridSearchCV(RBF, parameters, scoring='%s_micro' % score)
     #mlp = MLPClassifier(activation='logistic')
     X_train, X_validation, y_train, y_validation = train_test_split(feature_matrix, y, test_size=0.3, random_state=42)
-    half_size = X_train.shape(1) // 2
-    first_batch_X = X_train[0:half_size]
-    first_batch_y = y_train[0:half_size]
-    second_batch_X = X_train[half_size:feature_matrix.shape(1)]
-    second_batch_y = y_train[half_size:feature_matrix.shape(1)]
+    #print(X_train.shape, X_train.shape(0))
+    half_size = X_train.shape[0] // 2
+    quarter_size = half_size // 2
+    first_batch_X = X_train[0:quarter_size]
+    first_batch_y = y_train[0:quarter_size]
+    second_batch_X = X_train[quarter_size:half_size]
+    second_batch_y = y_train[quarter_size:half_size]
+    third_batch_X = X_train[half_size:half_size + quarter_size]
+    third_batch_y = y_train[half_size:half_size + quarter_size]
+    forth_batch_X = X_train[half_size + quarter_size:X_train.shape[0]]
+    forth_batch_y = y_train[half_size + quarter_size:X_train.shape[0]]
+
 
     RBF.fit(first_batch_X, first_batch_y)
     RBF.fit(second_batch_X, second_batch_y)
+    RBF.fit(third_batch_X, third_batch_y)
+    RBF.fit(forth_batch_X, forth_batch_y)
     #mlp.fit(X_train, y_train)
     #pickle.dump(RBF, open('RBF.pickle', 'wb'))
 
