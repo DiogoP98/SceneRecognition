@@ -9,7 +9,7 @@ from keras.models import Model
 from sklearn.svm import SVC
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.metrics import precision_score
 from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
@@ -92,42 +92,24 @@ if __name__ == '__main__':
     #RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
     #score = 'precision'
     #clf = GridSearchCV(RBF, parameters, scoring='%s_micro' % score)
-    mlp = MLPClassifier(activation='logistic')
-    mlp.batch_size = 50
-    X_train, X_validation, y_train, y_validation = train_test_split(feature_matrix, y, test_size=0.3, random_state=42)
-    #print(X_train.shape, X_train.shape(0))
-    batches = []
-    batches_y = []
-    previous_batch = 0
-    for batch in range (50, X_train.shape[0], 50):
-        batches.append(X_train[previous_batch:batch])
-        batches_y.append(y_train[previous_batch:batch])
-        previous_batch = batch
-    
-    batches = np.asarray(batches)
-    batches_y = np.asarray(batches_y)
+    kf = KFold(n_splits=10, shuffle=True)
+    for train_index, validation_index in kf.split(feature_matrix):
+        X_train, X_validation = X[train_index], X[validation_index]
+        y_train, y_validation = y[train_index], y[validation_index]
+        batches = []
+        batches_y = []
+        previous_batch = 0
+        mlp = MLPClassifier(activation='logistic')
+        for batch in range (50, X_train.shape[0], 50):
+            batches.append(X_train[previous_batch:batch])
+            batches_y.append(y_train[previous_batch:batch])
+            previous_batch = batch
+        
+        batches = np.asarray(batches)
+        batches_y = np.asarray(batches_y)
 
-    classes = np.asarray(classes)
-    for batch, batch_y in zip(batches, batches_y):
-        mlp.partial_fit(batch, batch_y, classes)
-    #mlp.fit(X_train, y_train)
-    #pickle.dump(RBF, open('RBF.pickle', 'wb'))
-
-    # print("Inception_V3:")
-    # print("Best parameters set found on development set:")
-    # print()
-    # print(clf.best_params_)
-
-    # means = clf.cv_results_['mean_test_score']
-    # stds = clf.cv_results_['std_test_score']
-    # for mean, std, params in zip(means, stds, clf.cv_results_['params']):
-    #     print("%0.3f (+/-%0.03f) for %r"
-    #           % (mean, std * 2, params))
-    # print()
-    y_predicted = mlp.predict(X_validation)
-    print(precision_score(y_validation, y_predicted, average= 'micro') * 100)
-    # x = base_model.output
-    # x = GlobalAveragePooling2D(name='avg_pool')(x)
-    # x = Dropout(0.4)(x)
-    # predictions = Dense(CLASSES, activation='softmax')(x)
-    # model = Model(inputs=base_model.input, outputs=predictions)
+        classes = np.asarray(classes)
+        for batch, batch_y in zip(batches, batches_y):
+            mlp.partial_fit(batch, batch_y, classes)
+        y_predicted = mlp.predict(X_validation)
+        print(precision_score(y_validation, y_predicted, average= 'micro') * 100)
