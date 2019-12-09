@@ -15,6 +15,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
 from sklearn.linear_model import SGDClassifier
 
+
+classes = []
 def preprocessData():
     list_of_classes = []
     hash_map = {}
@@ -27,6 +29,7 @@ def preprocessData():
         for name in dirs:
             list_of_classes.append(name)
             hash_map[name] = index
+            classes.append(index)
             index += 1
             number_files = len(fnmatch.filter(os.listdir("../data/training/" + name), '*.jpg'))
 
@@ -104,8 +107,9 @@ if __name__ == '__main__':
     batches = np.asarray(batches)
     batches_y = np.asarray(batches_y)
 
+    classes = np.asarray(classes)
     for batch, batch_y in zip(batches, batches_y):
-        mlp.partial_fit(batch, batch_y)
+        mlp.partial_fit(batch, batch_y, classes)
     #mlp.fit(X_train, y_train)
     #pickle.dump(RBF, open('RBF.pickle', 'wb'))
 
