@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import precision_score
 from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
+from sklearn.linear_model import SGDClassifier
 
 def preprocessData():
     list_of_classes = []
@@ -75,20 +76,21 @@ def getFeatures(X, model):
 
 if __name__ == '__main__':
     X, y, max_width, max_height = preprocessData()
-    # model = ResNet50(include_top=False, weights="imagenet", input_shape=(max_width, max_height, 3))
-    # #freeze layers in model
-    # for layer in model.layers:
-    #     layer.trainable = False
-    # feature_matrix = getFeatures(X, model)
+    model = ResNet50(include_top=False, weights="imagenet", input_shape=(max_width, max_height, 3))
+    #freeze layers in model
+    for layer in model.layers:
+        layer.trainable = False
+    feature_matrix = getFeatures(X, model)
     
     # np.save("feature_matrix_transfer.npy", feature_matrix)
 
-    feature_matrix = np.load("feature_matrix_transfer.npy")
+    #feature_matrix = np.load("feature_matrix_transfer.npy")
 
-    RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
+    #RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
     #score = 'precision'
     #clf = GridSearchCV(RBF, parameters, scoring='%s_micro' % score)
-    #mlp = MLPClassifier(activation='logistic')
+    mlp = MLPClassifier(activation='logistic')
+    mlp.batch_size = 50
     X_train, X_validation, y_train, y_validation = train_test_split(feature_matrix, y, test_size=0.3, random_state=42)
     #print(X_train.shape, X_train.shape(0))
     batches = []
@@ -102,11 +104,8 @@ if __name__ == '__main__':
     batches = np.asarray(batches)
     batches_y = np.asarray(batches_y)
 
-    print(batches.shape)
-    print(batches_y.shape)
-    
     for batch, batch_y in zip(batches, batches_y):
-        RBF.fit(batch, batch_y)
+        mlp.partial_fit(batch, batch_y)
     #mlp.fit(X_train, y_train)
     #pickle.dump(RBF, open('RBF.pickle', 'wb'))
 
@@ -121,7 +120,7 @@ if __name__ == '__main__':
     #     print("%0.3f (+/-%0.03f) for %r"
     #           % (mean, std * 2, params))
     # print()
-    y_predicted = RBF.predict(X_validation)
+    y_predicted = mlp.predict(X_validation)
     print(precision_score(y_validation, y_predicted, average= 'micro') * 100)
     # x = base_model.output
     # x = GlobalAveragePooling2D(name='avg_pool')(x)
