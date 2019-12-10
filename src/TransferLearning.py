@@ -116,6 +116,8 @@ if __name__ == '__main__':
         print("Best parameters for MLP: ")
         print(clf.best_params_)
         print("Best score: " + str(clf.best_score_))
+        precision = precision_score(y_validation, y_predicted, average= 'micro') * 100
+        print("Predicted score: " + str(precision))
 
         parameter_space_2 = {'kernel':('linear', 'rbf'), 'C':[1, 10, 100]}
         svc = SVC()
@@ -125,3 +127,5 @@ if __name__ == '__main__':
         print("Best parameters for SVM: ")
         print(clf2.best_params_)
         print("Best score: " + str(clf2.best_score_))
+        precision = precision_score(y_validation, y_predicted, average= 'micro') * 100
+        print("Predicted score: " + str(precision))
