@@ -1,5 +1,5 @@
 import numpy as np
-import os, fnmatch, pickle
+import os, fnmatch, pickle, sys
 import cv2
 
 from keras.preprocessing.image import load_img, img_to_array
@@ -14,7 +14,7 @@ from sklearn.metrics import precision_score
 from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
 from sklearn.linear_model import SGDClassifier
-
+from sklearn.naive_bayes import MultinomialNB
 
 classes = []
 def preprocessData():
@@ -22,8 +22,8 @@ def preprocessData():
     hash_map = {}
     index = 0
     N = 0
-    max_width = 0
-    max_height = 0
+    min_width = sys.maxsize
+    min_height = sys.maxsize
 
     for _, dirs, files in os.walk("../data/training/", topdown=False): #getting each class from data
         for name in dirs:
@@ -42,29 +42,32 @@ def preprocessData():
             image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
             image = img_to_array(image, dtype='float')
             width, height, _ = image.shape
-            max_width = max(width, max_width)
-            max_height = max(height, max_height)
+            max_width = min(width, max_width)
+            max_height = min(height, max_height)
 
     for current_class in list_of_classes:
         for index in range(100):
             image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
             image = img_to_array(image, dtype='float')
-            image_resized = cv2.resize(image, (max_width, max_height))
-            image_resized = np.expand_dims(image_resized, axis=0)
-            image_resized = preprocess_input(image_resized)
-
-            # if width == max_width and height == max_height:
-            #     X.append(image)
-            #     y.append(hash_map[current_class])
-            #     continue
+            width, height, _ = image.shape
+            if width != min_width or height != min_height:
+                square_size = min(image.shape[0], image.shape[1])
+                centrex = image.shape[0] // 2
+                centrey = image.shape[1] // 2
+                halfcrop = square_size // 2
+                image = image[centrex - halfcrop:centrex + halfcrop,centrey - halfcrop:centrey + halfcrop]
+                image = cv2.resize(image, (min_width, min_height))
             
-            X.append(image_resized)
+            image = np.expand_dims(image, axis=0)
+            image = preprocess_input(image)
+            
+            X.append(image)
             y.append(hash_map[current_class])
     
     X = np.asarray(X)
     y = np.asarray(y)
 
-    return X, y, max_width, max_height
+    return X, y, min_width, min_height
 
 def getFeatures(X, model):
     feature_matrix = []
@@ -78,38 +81,47 @@ def getFeatures(X, model):
     return feature_matrix
 
 if __name__ == '__main__':
-    X, y, max_width, max_height = preprocessData()
-    model = ResNet50(include_top=False, weights="imagenet", input_shape=(max_width, max_height, 3))
+    X, y, min_width, min_height = preprocessData()
+    #np.save("classes.npy", y)
+    model = ResNet50(include_top=False, weights="imagenet", input_shape=(min_height, min_width, 3))
     #freeze layers in model
     for layer in model.layers:
-        layer.trainable = False
+       layer.trainable = False
     feature_matrix = getFeatures(X, model)
     
-    # np.save("feature_matrix_transfer.npy", feature_matrix)
+    #np.save("feature_matrix_transfer_min.npy", feature_matrix)
+    #print("Finished Feature extraction")
+    #feature_matrix = np.load("feature_matrix_transfer_min.npy")
 
-    #feature_matrix = np.load("feature_matrix_transfer.npy")
+    #y = np.load("classes.npy")
 
     #RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
     #score = 'precision'
     #clf = GridSearchCV(RBF, parameters, scoring='%s_micro' % score)
     kf = KFold(n_splits=10, shuffle=True)
     for train_index, validation_index in kf.split(feature_matrix):
-        X_train, X_validation = X[train_index], X[validation_index]
+        X_train, X_validation = feature_matrix[train_index], feature_matrix[validation_index]
         y_train, y_validation = y[train_index], y[validation_index]
-        batches = []
-        batches_y = []
-        previous_batch = 0
-        mlp = MLPClassifier(activation='logistic')
-        for batch in range (50, X_train.shape[0], 50):
-            batches.append(X_train[previous_batch:batch])
-            batches_y.append(y_train[previous_batch:batch])
-            previous_batch = batch
-        
-        batches = np.asarray(batches)
-        batches_y = np.asarray(batches_y)
+        parameter_space = {
+            'hidden_layer_sizes': [(50,50,50), (50,100,50), (100,)],
+            'activation': ['tanh', 'logistic'],
+            'solver': ['sgd', 'adam'],
+            'alpha': [0.0001, 0.05],
+            'learning_rate': ['constant','adaptive'],
+        }
+        mlp = MLPClassifier()
+        clf = GridSearchCV(mlp, parameter_space, scoring='precision_micro')
+        clf.fit(X_train, y_train)
+        y_predicted = clf.predict(X_validation)
+        print("Best parameters for MLP: ")
+        print(clf.best_params_)
+        print("Best score: " + str(clf.best_score_))
 
-        classes = np.asarray(classes)
-        for batch, batch_y in zip(batches, batches_y):
-            mlp.partial_fit(batch, batch_y, classes)
-        y_predicted = mlp.predict(X_validation)
-        print(precision_score(y_validation, y_predicted, average= 'micro') * 100)
+        parameter_space_2 = {'kernel':('linear', 'rbf'), 'C':[1, 10, 100]}
+        svc = SVC()
+        clf2 = GridSearchCV(svc, parameter_space_2, scoring='precision_micro')
+        clf2.fit(X_train, y_train)
+        y_predicted = clf2.predict(X_validation)
+        print("Best parameters for SVM: ")
+        print(clf2.best_params_)
+        print("Best score: " + str(clf2.best_score_))
