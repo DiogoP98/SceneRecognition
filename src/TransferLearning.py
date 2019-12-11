@@ -16,6 +16,9 @@ from sklearn.decomposition import PCA
 from sklearn.linear_model import SGDClassifier
 from sklearn.naive_bayes import MultinomialNB
 
+import warnings
+warnings.filterwarnings("ignore")
+
 classes = []
 def preprocessData():
     list_of_classes = []
@@ -42,8 +45,8 @@ def preprocessData():
             image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
             image = img_to_array(image, dtype='float')
             width, height, _ = image.shape
-            max_width = min(width, max_width)
-            max_height = min(height, max_height)
+            min_width = min(width, min_width)
+            min_height = min(height, min_height)
 
     for current_class in list_of_classes:
         for index in range(100):
@@ -98,12 +101,12 @@ if __name__ == '__main__':
     #RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
     #score = 'precision'
     #clf = GridSearchCV(RBF, parameters, scoring='%s_micro' % score)
-    kf = KFold(n_splits=10, shuffle=True)
+    kf = KFold(n_splits=5, shuffle=True)
     for train_index, validation_index in kf.split(feature_matrix):
         X_train, X_validation = feature_matrix[train_index], feature_matrix[validation_index]
         y_train, y_validation = y[train_index], y[validation_index]
         parameter_space = {
-            'hidden_layer_sizes': [(50,50,50), (50,100,50), (100,)],
+            'hidden_layer_sizes': [(100,)],
             'activation': ['tanh', 'logistic'],
             'solver': ['sgd', 'adam'],
             'alpha': [0.0001, 0.05],
@@ -119,7 +122,7 @@ if __name__ == '__main__':
         precision = precision_score(y_validation, y_predicted, average= 'micro') * 100
         print("Predicted score: " + str(precision))
 
-        parameter_space_2 = {'kernel':('linear', 'rbf'), 'C':[1, 10, 100]}
+        parameter_space_2 = {'kernel':('linear', 'rbf'), 'C':[1, 10]}
         svc = SVC()
         clf2 = GridSearchCV(svc, parameter_space_2, scoring='precision_micro')
         clf2.fit(X_train, y_train)

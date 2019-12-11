@@ -63,6 +63,7 @@ def kNearestNeighbors():
     best_k = 0
     for n in range(1,101,1):
         averagePrecision = 0 
+        print("here")
         for train_index, validation_index in kf.split(X):
             X_train, X_validation = X[train_index], X[validation_index]
             y_train, y_validation = y[train_index], y[validation_index]
@@ -79,10 +80,10 @@ def kNearestNeighbors():
     
     print("Best model was with n = " + str(best_k) + " = " + str(best_precision))
 
-    test_data = preprocess.get_test_data()
-    test_tiny = tiny_images(test_data)
-    test_predictions = best_model.predict(test_tiny)
-    generate_file(test_predictions, hash_map)
+    # test_data = preprocess.get_test_data()
+    # test_tiny = tiny_images(test_data)
+    # test_predictions = best_model.predict(test_tiny)
+    # generate_file(test_predictions, hash_map)
 
 if __name__ == '__main__':
     kNearestNeighbors()
