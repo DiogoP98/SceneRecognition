@@ -29,6 +29,7 @@ def tiny_images(X, size = 16):
         centrex = width // 2
         centrey = height // 2
         halfcrop = square_size // 2
+        #crop the image about a square in the centre
         croppedimage = image[centrex - halfcrop:centrex + halfcrop,centrey - halfcrop:centrey + halfcrop]
         resized_image = resize(croppedimage, (16, 16), anti_aliasing=True)
         tiny_images_X.append(resized_image.flatten())

@@ -31,7 +31,8 @@ def preprocessData():
     list_of_classes = []
     index = 0
 
-    for _, dirs, files in os.walk("../data/training/", topdown=False): #getting each class from data
+    #getting each class from data
+    for _, dirs, files in os.walk("../data/training/", topdown=False): 
         for name in dirs:
             list_of_classes.append(name)
             hash_map[name] = index
@@ -40,6 +41,7 @@ def preprocessData():
 
     X = []
     y = []
+    #get the size of the biggest image
     for current_class in list_of_classes:
         for index in range(100):
             image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
@@ -48,6 +50,7 @@ def preprocessData():
             max_width = max(width, max_width)
             max_height = max(height, max_height)
 
+    #resizing every image
     for current_class in list_of_classes:
         for index in range(100):
             image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')

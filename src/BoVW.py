@@ -76,23 +76,6 @@ def get_histograms(data, kmeans, patch_size, step, number_of_clusters) -> (np.nd
     feature_vector = np.asarray(feature_vector)
     return feature_vector
 
-def generate_file(test_predictions, hash_map):
-    """Writes the test predicitons to a file.
-    
-    Arguments:
-        test_predictions {np.ndarray} -- Array with the predictions of each image.
-        hash_map {dictionary} -- Correspondence between the class number and class name
-    """    
-    f = open("run2.txt", "w")
-    image = 0
-    for file in sorted(os.listdir("../data/testing/"), key=lambda x: int(x.split('.')[0])):
-        predicted_class = list(hash_map.keys())[list(hash_map.values()).index(test_predictions[image])]
-        f.write(file + " " + predicted_class + "\n")
-        image += 1
-
-    f.close()
-
-
 if __name__ == '__main__':
     X, y = auxiliar.build_data()
 
