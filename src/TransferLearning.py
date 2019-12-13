@@ -1,42 +1,42 @@
 import numpy as np
 import os, fnmatch, pickle, sys
 import cv2
+import random
 
 from keras.preprocessing.image import load_img, img_to_array
-from keras.applications.resnet50 import ResNet50, preprocess_input
-from keras.layers import Input, Flatten
+from keras.applications.resnet_v2 import ResNet50V2, preprocess_input
 from keras.models import Model
-from sklearn.svm import SVC
-from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.metrics import precision_score
 from sklearn.neural_network import MLPClassifier
-from sklearn.decomposition import PCA
 from sklearn.linear_model import SGDClassifier
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.utils import shuffle 
 
+import preprocess
 import warnings
 warnings.filterwarnings("ignore")
 
-classes = []
+hash_map = {}
+max_height = 0
+max_width = 0
+
 def preprocessData():
+    """Get training images and resize each one of them to get the size of the bigger image in the data set
+    
+    Returns:
+        X [np.ndarray] -- Matrix with all the images, resized.
+        y [type] -- Matrix 1*N, with the class of each image.
+    """    
     list_of_classes = []
-    hash_map = {}
     index = 0
-    N = 0
-    min_width = sys.maxsize
-    min_height = sys.maxsize
 
     for _, dirs, files in os.walk("../data/training/", topdown=False): #getting each class from data
         for name in dirs:
             list_of_classes.append(name)
             hash_map[name] = index
-            classes.append(index)
             index += 1
             number_files = len(fnmatch.filter(os.listdir("../data/training/" + name), '*.jpg'))
-
-            N += number_files
 
     X = []
     y = []
@@ -45,21 +45,16 @@ def preprocessData():
             image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
             image = img_to_array(image, dtype='float')
             width, height, _ = image.shape
-            min_width = min(width, min_width)
-            min_height = min(height, min_height)
+            max_width = max(width, max_width)
+            max_height = max(height, max_height)
 
     for current_class in list_of_classes:
         for index in range(100):
             image = load_img('../data/training/' + current_class + '/' + str(index) + '.jpg', grayscale=False, color_mode='rgb')
             image = img_to_array(image, dtype='float')
             width, height, _ = image.shape
-            if width != min_width or height != min_height:
-                square_size = min(image.shape[0], image.shape[1])
-                centrex = image.shape[0] // 2
-                centrey = image.shape[1] // 2
-                halfcrop = square_size // 2
-                image = image[centrex - halfcrop:centrex + halfcrop,centrey - halfcrop:centrey + halfcrop]
-                image = cv2.resize(image, (min_width, min_height))
+            if width != max_width or height != max_height:
+                image = cv2.resize(image, (max_width, max_height))
             
             image = np.expand_dims(image, axis=0)
             image = preprocess_input(image)
@@ -70,9 +65,47 @@ def preprocessData():
     X = np.asarray(X)
     y = np.asarray(y)
 
-    return X, y, min_width, min_height
+    return X, y
+
+def get_and_resize_test_data(width, height):
+    """Gets the test data and resize it.
+    
+    Arguments:
+        width {int} -- Width of the resized image
+        height {int} -- Height of the resized image
+    
+    Returns:
+        [np.ndarray] -- Matrix with all the images, resized.
+    """    
+    test_data = []
+    for file in sorted(os.listdir("../data/testing/"), key=lambda x: int(x.split('.')[0])):
+        image = load_img("../data/testing/" + file, grayscale=False, color_mode='rgb')
+        image = img_to_array(image, dtype='float')
+
+        width, height, _ = image.shape
+        if width != max_width or height != max_height:
+            image = cv2.resize(image, (max_width, max_height))
+            
+        image = np.expand_dims(image, axis=0)
+        image = preprocess_input(image)
+
+        test_data.append(np.array(image))
+    
+    test_data = np.asarray(test_data)
+
+    return test_data
+
 
 def getFeatures(X, model):
+    """Gets the feature of each image and ataches it to an array, after flattening it.
+    
+    Arguments:
+        X {np.ndarray} -- Matrix with all the images
+        model {keras.applications.resnet_v2.ResNet50V2} -- The pre-trained model that it's going to feature extract each image
+    
+    Returns:
+        [np.ndarray] -- Matrix with the features extracted of each image in each row.
+    """    
     feature_matrix = []
     for image in X:
         image_feature = model.predict(image)
@@ -81,54 +114,79 @@ def getFeatures(X, model):
     feature_matrix = np.asarray(feature_matrix)
     scaler = StandardScaler()
     feature_matrix = scaler.fit_transform(feature_matrix)
+
     return feature_matrix
 
+def generate_file(test_predictions):
+    """Writes the test predicitons to a file.
+    
+    Arguments:
+        test_predictions {np.ndarray} -- Array with the predictions of each image.
+        hash_map {dictionary} -- Correspondence between the class number and class name
+    """    
+    f = open("run3.txt", "w")
+    image = 0
+    for file in sorted(os.listdir("../data/testing/"), key=lambda x: int(x.split('.')[0])):
+        predicted_class = list(hash_map.keys())[list(hash_map.values()).index(test_predictions[image])]
+        f.write(file + " " + predicted_class + "\n")
+        image += 1
+
+    f.close()
+
 if __name__ == '__main__':
-    X, y, min_width, min_height = preprocessData()
-    #np.save("classes.npy", y)
-    model = ResNet50(include_top=False, weights="imagenet", input_shape=(min_height, min_width, 3))
+    X, y = preprocessData()
+    np.save("classes.npy", y)
+
+    model = ResNet50V2(include_top=False, weights="imagenet", input_shape=(max_width, max_height, 3))
     #freeze layers in model
     for layer in model.layers:
-       layer.trainable = False
+        layer.trainable = False
+
     feature_matrix = getFeatures(X, model)
-    
-    #np.save("feature_matrix_transfer_min.npy", feature_matrix)
-    #print("Finished Feature extraction")
-    #feature_matrix = np.load("feature_matrix_transfer_min.npy")
+    np.save("feature_matrix_transfer_411.npy", feature_matrix)
 
-    #y = np.load("classes.npy")
+    best_model = None
+    best_precision = 0
 
-    #RBF = OneVsRestClassifier(SVC(kernel='rbf', random_state=0, C=1))
-    #score = 'precision'
-    #clf = GridSearchCV(RBF, parameters, scoring='%s_micro' % score)
-    kf = KFold(n_splits=5, shuffle=True)
+    kf = KFold(n_splits=10, shuffle=True)
     for train_index, validation_index in kf.split(feature_matrix):
         X_train, X_validation = feature_matrix[train_index], feature_matrix[validation_index]
         y_train, y_validation = y[train_index], y[validation_index]
-        parameter_space = {
-            'hidden_layer_sizes': [(100,)],
-            'activation': ['tanh', 'logistic'],
-            'solver': ['sgd', 'adam'],
-            'alpha': [0.0001, 0.05],
-            'learning_rate': ['constant','adaptive'],
-        }
-        mlp = MLPClassifier()
-        clf = GridSearchCV(mlp, parameter_space, scoring='precision_micro')
-        clf.fit(X_train, y_train)
-        y_predicted = clf.predict(X_validation)
-        print("Best parameters for MLP: ")
-        print(clf.best_params_)
-        print("Best score: " + str(clf.best_score_))
-        precision = precision_score(y_validation, y_predicted, average= 'micro') * 100
-        print("Predicted score: " + str(precision))
+        
+        size = X_train.shape[0]
+        mlp = MLPClassifier(solver='sgd', activation='logistic', learning_rate='adaptive')
+        sgd = SGDClassifier()
 
-        parameter_space_2 = {'kernel':('linear', 'rbf'), 'C':[1, 10]}
-        svc = SVC()
-        clf2 = GridSearchCV(svc, parameter_space_2, scoring='precision_micro')
-        clf2.fit(X_train, y_train)
-        y_predicted = clf2.predict(X_validation)
-        print("Best parameters for SVM: ")
-        print(clf2.best_params_)
-        print("Best score: " + str(clf2.best_score_))
-        precision = precision_score(y_validation, y_predicted, average= 'micro') * 100
-        print("Predicted score: " + str(precision))
+        #Partial fit the batches in 15 iterations
+        number_of_iterations = 15
+        for iteration in range(number_of_iterations):
+            X_train, y_train = shuffle(X_train, y_train)
+            previous_batch = 0
+            for batch in range(50, size + 50, 50):
+                mlp.partial_fit(X_train[previous_batch:batch], y_train[previous_batch:batch], np.unique(y))
+                sgd.partial_fit(X_train[previous_batch:batch], y_train[previous_batch:batch], np.unique(y))
+                previous_batch = batch
+        
+        y_predicted_mlp = mlp.predict(X_validation)
+        y_predicted_sgd = sgd.predict(X_validation)
+        precision_sdg = precision_score(y_validation, y_predicted_sgd, average= 'micro') * 100
+        precision_mlp = precision_score(y_validation, y_predicted_mlp, average= 'micro') * 100
+
+        if precision_mlp > best_precision:
+            best_precision = precision_mlp
+            best_model = mlp
+
+        if precision_sdg > best_precision:
+            best_precision = precision_sdg
+            best_model = sgd
+    
+    pickle.dump(best_model, open('Transfer_411.pickle', 'wb'))
+    #Start Test prediction
+    test_data = get_and_resize_test_data(max_width, max_height) 
+    print("Finished image data")
+    features_test = getFeatures(test_data, model)
+    print("Finish feature extraction")
+    test_predictions = best_model.predict(features_test)
+    print("Finish predictions")
+    generate_file(test_predictions, hash_map)
+

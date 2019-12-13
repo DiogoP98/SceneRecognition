@@ -1,5 +1,5 @@
 import numpy as np
-import preprocess
+import auxiliar
 import pickle, os
 
 from skimage.util.shape import view_as_windows
@@ -94,47 +94,45 @@ def generate_file(test_predictions, hash_map):
 
 
 if __name__ == '__main__':
-    X, y, hash_map = preprocess.build_data()
+    X, y = auxiliar.build_data()
 
-    kf = KFold(n_splits=3, shuffle=True)
     number_of_clusters = 600
-    average_precision = 0
+    precision = 0
     best_precision = 0
     best_model = None
     best_kmeans = None
     
     #3 fold cross validation
-    # for train_index, validation_index in kf.split(X):
-        # X_train, X_validation = X[train_index], X[validation_index]
-        # y_train, y_validation = y[train_index], y[validation_index]
+    kf = KFold(n_splits=3, shuffle=True)
+    for train_index, validation_index in kf.split(X):
+        X_train, X_validation = X[train_index], X[validation_index]
+        y_train, y_validation = y[train_index], y[validation_index]
+        patches = extract_patches(X_train, 4, 2)
+        print("Finished patch extraction")
 
-    X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size=0.3, random_state=42)
-    patches = extract_patches(X_train, 4, 2)
-    print("Finished patch extraction")
+        #Builds codebook
+        kmeans = MiniBatchKMeans(n_clusters=number_of_clusters, random_state=0).fit(patches)
+        print("Finished K-means")
 
-    #Builds codebook
-    kmeans = MiniBatchKMeans(n_clusters=number_of_clusters, random_state=0).fit(patches)
-    print("Finished K-means")
+        train_features = get_histograms(X_train, kmeans, 4, 2, number_of_clusters)
+        print("Finished feature vectors for training data")
 
-    train_features = get_histograms(X_train, kmeans, 4, 2, number_of_clusters)
-    print("Finished feature vectors for training data")
+        validation_features = get_histograms(X_validation, kmeans, 4, 2, number_of_clusters)
+        print("Finished feature vectors for validation data")
 
-    validation_features = get_histograms(X_validation, kmeans, 4, 2, number_of_clusters)
-    print("Finished feature vectors for validation data")
+        classif = OneVsRestClassifier(SVC(kernel='linear'))
+        classif.fit(train_features, y_train)
+        print("Finished SVM")
 
-    classif = OneVsRestClassifier(SVC(kernel='linear'))
-    classif.fit(train_features, y_train)
-    print("Finished SVM")
+        y_predict = classif.predict(validation_features)
+        precision += precision_score(y_validation, y_predict, average= 'micro') * 100
 
-    y_predict = classif.predict(validation_features)
-    precision = precision_score(y_validation, y_predict, average= 'micro') * 100
-
-    print("Average precision: " + str(precision))
+    print("Average precision: " + str(precision/3))
     
-    test_data = preprocess.get_test_data()
+    test_data = auxiliar.get_test_data()
     test_features = get_histograms(test_data, kmeans, 4, 2, number_of_clusters)
-    test_predict = classif.predict(test_features)
-    generate_file(test_predict, hash_map)
+    test_predictions = classif.predict(test_features)
+    auxiliar.generate_file(test_predictions, "run2.txt")
 
 
 
