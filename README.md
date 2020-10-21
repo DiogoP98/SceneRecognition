@@ -5,7 +5,7 @@ Computer Vision project that analyses the performance of different methods in th
 
 ## Implementation
 
-Three different methods are implemented K Nearest Neighbours (KNN) using tiny images as feature extraction, Bag of Visual Words (BoVW) using dense sampling and qunatization and Transfer learning using a pre-trained ResNet-50 model.
+Three different methods are implemented K Nearest Neighbours (KNN) using tiny images as feature extraction, Bag of Visual Words (BoVW) using dense sampling and quantization and Transfer learning using a pre-trained ResNet-50 model.
 
 ### Enviroment
 
