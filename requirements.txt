@@ -2,4 +2,4 @@ opencv-python
 numpy
 keras
 sklearn
-skimage
+scikit-image
